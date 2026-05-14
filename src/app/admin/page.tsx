@@ -35,8 +35,8 @@ export default function admin() {
     function recup_tickets(){
         //TODO : récupère les tickets de BDD_tickets et met dans data le matériel emprunté par le users
          const fakeData = [
-        { type : "Emprunt", nom: "Ballon", qt: 3, info : "", date : "2023-10-01", userId : "12"},
-        { type : "Rendu", nom: "Raquette", qt: 5, info : "Raquette erraflée", date : "2023-10-02", userId : "23"},
+        { type : "Emprunt", nom: "Ballon", qt: 3, info : "", date : "14-05-2026", userId : "12"},
+        { type : "Rendu", nom: "Raquette", qt: 5, info : "Raquette erraflée", date : "14-05-2026", userId : "23"},
         ]
         setData(fakeData)
     }
@@ -96,7 +96,7 @@ export default function admin() {
                 <input type="text" value={description} onChange={(e) => setDescription(e.target.value)}  placeholder="Nom du matériel"/>
                 <input type="text" value={quant} onChange={(e) => setQuant(Number(e.target.value))} placeholder="Quantité"/>
                 <input type="text" value={info} onChange={(e) => setInfo(e.target.value)}  placeholder="Informations supplémentaires"/>
-                <input type="text" value={date} onChange={(e) => setDate(e.target.value)}  placeholder="Date"/>
+                <input type="date" value={date} onChange={(e) => setDate(e.target.value)}  placeholder="Date"/>
                 <input type="text" value={userId} onChange={(e) => setUserId(e.target.value)} placeholder="ID de l'utilisateur"/>
                 </div>
         )}
