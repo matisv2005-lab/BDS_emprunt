@@ -1,0 +1,41 @@
+model Utilisateur{
+    id         String @id @default(cuid())
+    nom        String
+    email      String @unique
+
+    tickets    Ticket[]
+    emprunts   Emprunt[]
+}
+
+model Ticket {
+  id                String @id @default(cuid())
+  type              String
+  description       String
+  quantite          Int
+  date              DateTime
+  info              String
+
+  userId            String
+  user              Utilisateur   @relation(fields: [userId], references: [id])
+}
+
+model Inventaire {
+  id                String @id @default(cuid())
+  description       String
+  quantite          Int
+  info              String
+
+  emprunts          Emprunt[]
+}
+
+model Emprunt {
+  id           String @id @default(cuid())
+  userId       String
+  inventaireId String
+  quantite     Int
+  date         DateTime
+
+  user         Utilisateur @relation(fields: [userId], references: [id])
+  inventaire   Inventaire  @relation(fields: [inventaireId], references: [id])
+}
+
