@@ -1,6 +1,16 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
 model Utilisateur{
     id         String @id @default(cuid())
     nom        String
+    prenom     String
     email      String @unique
 
     tickets    Ticket[]
@@ -12,11 +22,11 @@ model Ticket {
   type              String
   description       String
   quantite          Int
-  date              DateTime
   info              String
+  date              DateTime
 
   userId            String
-  user              Utilisateur   @relation(fields: [userId], references: [id])
+  user              Utilisateur   @relation(fields: [userId], references: [id]) 
 }
 
 model Inventaire {
@@ -38,4 +48,3 @@ model Emprunt {
   user         Utilisateur @relation(fields: [userId], references: [id])
   inventaire   Inventaire  @relation(fields: [inventaireId], references: [id])
 }
-

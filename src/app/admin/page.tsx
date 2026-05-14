@@ -10,20 +10,33 @@ type Ticket = {
     qt: number
     info : string
     date : string
-    user : string
+    userId : string
 }
 
 export default function admin() {
 
     const[data_tickets, setData] = useState<Ticket[]>([])
     const[table, setTable] = useState("Users")
-    // const[BDD,setBDD] = useState<Materiel[]>([])
+
+    const[nom, setNom] = useState("")
+    const[prenom, setPrenom] = useState("")
+    const[email, setEmail] = useState("")
+
+    const[description, setDescription] = useState("")
+    const[info, setInfo] = useState("")
+    const[quant, setQuant] = useState(0)
+
+    const[type, setType] = useState("")
+    const[date, setDate] = useState("")
+    const [userId, setUserId] = useState("");
+    
+    const [inventaireId, setInventaireId] = useState("");
 
     function recup_tickets(){
         //TODO : récupère les tickets de BDD_tickets et met dans data le matériel emprunté par le users
          const fakeData = [
-        { type : "Emprunt", nom: "Ballon", qt: 3, info : "", date : "2023-10-01", user : "Utilisateur1"},
-        { type : "Rendu", nom: "Raquette", qt: 5, info : "Raquette erraflée", date : "2023-10-02", user : "Utilisateur2"},
+        { type : "Emprunt", nom: "Ballon", qt: 3, info : "", date : "2023-10-01", userId : "12"},
+        { type : "Rendu", nom: "Raquette", qt: 5, info : "Raquette erraflée", date : "2023-10-02", userId : "23"},
         ]
         setData(fakeData)
     }
@@ -37,8 +50,25 @@ export default function admin() {
         //Supprimer le ticket de la BDD_tickets
     }
 
-    function add_bdd(){
+    async function add_bdd(){
+        let contenu = {}
+        if(table == "Users"){ contenu = {table : table, nom: nom, prenom: prenom, email: email} }
+        else if(table == "Tickets"){ contenu = {table : table, type: type, description: description, quantite: quant, info: info, date: date, userId: userId} }
+        else if(table == "Inventaire"){ contenu = {table : table, description: description, quantite: quant, info: info} }
+        else if(table == "Emprunt"){ contenu = {table : table, userId: userId, inventaireId: inventaireId, quantite: quant, date: date} }
+        const response = await fetch("/api/inventaire",{
+        method: "POST",
+        headers: {"Content-Type": "application/json",},
+        body: JSON.stringify({
+            description: description,
+            quantite: quant,
+            info: info,
+        }),
+    })
 
+    const data = await response.json()
+
+    console.log(data)
     }
     function supp_bdd(){
 
@@ -47,40 +77,49 @@ export default function admin() {
         
     }
 
+    //pour l'architecture de la BDD voir schema.prisma
     function afficher_select(table : string){
          if(table === "Users"){
             return(
-                //Section à revoir : pas sûr de l'architecture de la table Users
                 <div>
                 <p>Caractéristiques de l'utilisateur:</p>
-                <input type="text" placeholder="Nom du matériel"/>
-                <input type="text" placeholder="Quantité"/>
-                <input type="text" placeholder="Informations supplémentaires"/>
-                <input type="text" placeholder="Date"/>
-                <input type="text" placeholder="Utilisateur"/>
+                <input type="text" value={nom} onChange={(e) => setNom(e.target.value)} placeholder="Nom du cotisant"/>
+                <input type="text" value={prenom} onChange={(e) => setPrenom(e.target.value)} placeholder="Prenom du cotisant"/>
+                <input type="text" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email"/>
                 </div>
         )} 
         else if(table === "Tickets"){
             return(
                 <div>
                 <p>Caractéristiques du Ticket:</p>
-                <input type="text" placeholder="Type"/>
-                <input type="text" placeholder="Nom du matériel"/>
-                <input type="text" placeholder="Quantité"/>
-                <input type="text" placeholder="Informations supplémentaires"/>
-                <input type="text" placeholder="Date"/>
-                <input type="text" placeholder="Utilisateur"/>
+                <input type="text" value={type} onChange={(e) => setType(e.target.value)} placeholder="Type"/>
+                <input type="text" value={description} onChange={(e) => setDescription(e.target.value)}  placeholder="Nom du matériel"/>
+                <input type="text" value={quant} onChange={(e) => setQuant(Number(e.target.value))} placeholder="Quantité"/>
+                <input type="text" value={info} onChange={(e) => setInfo(e.target.value)}  placeholder="Informations supplémentaires"/>
+                <input type="text" value={date} onChange={(e) => setDate(e.target.value)}  placeholder="Date"/>
+                <input type="text" value={userId} onChange={(e) => setUserId(e.target.value)} placeholder="ID de l'utilisateur"/>
                 </div>
         )}
         else if(table === "Inventaire"){
             return(
                 <div>
                 <p>Caractéristiques du matériel:</p>
-                <input type="text" placeholder="Nom du matériel..."/>
-                <input type="text" placeholder="Quantité..."/>
-                <input type="text" placeholder="Informations supplémentaires..."/>
+                <input type="text" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Nom du matériel..."/>
+                <input type="text" value={quant} onChange={(e) => setQuant(Number(e.target.value))} placeholder="Quantité"/>
+                <input type="text" value={info} onChange={(e) => setInfo(e.target.value)} placeholder="Informations supplémentaires..."/>
                 </div>
         )}
+        else if (table === "Emprunt") {
+        return (
+            <div>
+                <p>Caractéristiques de l'emprunt :</p>
+                <input type="text" value={userId} onChange={(e) => setUserId(e.target.value)} placeholder="ID utilisateur..."/>
+                <input type="text" value={inventaireId} onChange={(e) => setInventaireId(e.target.value)} placeholder="ID inventaire..."/>
+                <input type="number" value={quant} onChange={(e) => setQuant(Number(e.target.value))} placeholder="Quantité"/>
+                <input type="date" value={date} onChange={(e) => setDate(e.target.value)}/>
+            </div>
+        );
+    }
     }
 
     return (
@@ -116,7 +155,7 @@ export default function admin() {
                             <td>{elt.nom}</td>
                             <td>{elt.qt}</td>
                             <td>{elt.date}</td>
-                            <td>{elt.user}</td>
+                            <td>{elt.userId}</td>
                             <td>{elt.info}</td>
                         </tr>
                     ))}
@@ -133,11 +172,12 @@ export default function admin() {
                 <option value="Users">Utilisateurs Cotisants</option>
                 <option value="Tickets">Tickets</option>
                 <option value="Inventaire">Inventaire Disponible</option>
+                <option value="Emprunt">Emprunts en cours</option>
             </select>
             
            <div>{afficher_select(table)}</div>
 
-            <button  type="button" onClick={() => add_bdd()}>Ajouter un matériel</button>
+            <button  type="button" onClick={() => add_bdd()}>Ajouter une entrée</button>
             <button  type="button" onClick={() => supp_bdd()}>Supprimer une entrée</button>
             <button  type="button" onClick={() => maj_bdd()}>Mettre à jour une entrée</button>
 

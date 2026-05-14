@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 
-type Materiel = {
+type Materiel = { 
   nom: string
   qt: number
   info : string
