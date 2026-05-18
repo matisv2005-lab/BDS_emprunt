@@ -2,16 +2,7 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
-
-//Type est soit "Emprunt" soit "Rendu"
-type Ticket = {
-    type : string
-    nom: string
-    qt: number
-    info : string
-    date : string
-    userId : string
-}
+import type { Ticket } from "@/type/type"
 
 export default function admin() {
 
@@ -32,13 +23,14 @@ export default function admin() {
     
     const [inventaireId, setInventaireId] = useState("");
 
-    function recup_tickets(){
-        //TODO : récupère les tickets de BDD_tickets et met dans data le matériel emprunté par le users
-         const fakeData = [
-        { type : "Emprunt", nom: "Ballon", qt: 3, info : "", date : "14-05-2026", userId : "12"},
-        { type : "Rendu", nom: "Raquette", qt: 5, info : "Raquette erraflée", date : "14-05-2026", userId : "23"},
-        ]
-        setData(fakeData)
+    async function recup_tickets(){
+        //Récupère les tickets de BDD_tickets
+        try{
+            const response = await fetch("/api/tickets")
+            const data = await response.json()
+            setData(data)
+        } 
+        catch(error){console.error("Erreur_recup_tickets:",error)}
     }
 
     //on l'appelle qu'une seule fois au chargement
@@ -48,33 +40,41 @@ export default function admin() {
 
     function valider(ticket : Ticket){
         //Supprimer le ticket de la BDD_tickets
+        requete_bdd("DELETE", ticket,"ticket")
+        //on maj le matériel de l'inventaire en envoyant le ticket
+        requete_bdd("PUT", ticket)
     }
 
-    async function add_bdd(){
+    function get_contenu(table : string){
         let contenu = {}
-        if(table == "Users"){ contenu = {table : table, nom: nom, prenom: prenom, email: email} }
-        else if(table == "Tickets"){ contenu = {table : table, type: type, description: description, quantite: quant, info: info, date: date, userId: userId} }
-        else if(table == "Inventaire"){ contenu = {table : table, description: description, quantite: quant, info: info} }
-        else if(table == "Emprunt"){ contenu = {table : table, userId: userId, inventaireId: inventaireId, quantite: quant, date: date} }
-        const response = await fetch("/api/inventaire",{
-        method: "POST",
+        if(table == "utilisateur"){ contenu = {nom: nom, prenom: prenom, email: email} }
+        else if(table == "ticket"){ contenu = {type: type, description: description, quantite: quant, info: info, date: date, userId: userId} }
+        else if(table == "inventaire"){ contenu = {description: description, quantite: quant, info: info} }
+        else if(table == "emprunt"){ contenu = {userId: userId, inventaireId: inventaireId, quantite: quant, date: date} }
+        return contenu;
+    }
+
+    async function requete_bdd(method : string, ticket?:Ticket, table_ticket? : string){
+        let contenu = {}
+        let req_table = table
+        //Pour le bouton valider : on supp le ticket
+        if(method === "DELETE" && ticket){
+            contenu = ticket
+            if(table_ticket){ req_table = table_ticket }
+        }
+        //Pour le bouton valider : on maj le matériel de l'inventaire
+        else if(method === "PUT" && ticket){
+            contenu = ticket
+            req_table = "inventaire"
+        }
+        else{ contenu = get_contenu(table) }
+        const response = await fetch("/api/" + req_table,{
+        method: method,
         headers: {"Content-Type": "application/json",},
-        body: JSON.stringify({
-            description: description,
-            quantite: quant,
-            info: info,
-        }),
-    })
-
-    const data = await response.json()
-
-    console.log(data)
-    }
-    function supp_bdd(){
-
-    }
-    function maj_bdd(){
-        
+        body: JSON.stringify({contenu}),
+        })
+        const data = await response.json()
+        console.log(data)
     }
 
     //pour l'architecture de la BDD voir schema.prisma
@@ -149,14 +149,22 @@ export default function admin() {
                 </thead>
                 <tbody id="ticket-body">
                     {data_tickets.map((elt, i) => (
-                        <tr key={i}>
+                        <tr key={elt.id}>
                             <td><button  type="button" onClick={() => valider(elt)}>Check</button></td>
+                            <td>{elt.id}</td>
                             <td>{elt.type}</td>
-                            <td>{elt.nom}</td>
-                            <td>{elt.qt}</td>
                             <td>{elt.date}</td>
+                            <td>{elt.message}</td>
                             <td>{elt.userId}</td>
-                            <td>{elt.info}</td>
+                            <td>
+                                <ul>
+                                    {elt.materiels.map((m) => (
+                                    <li key={m.id}>
+                                        {m.inventaire.description} x {m.quantite}
+                                    </li>
+                                    ))}
+                                </ul>
+                            </td>
                         </tr>
                     ))}
                 </tbody>
@@ -177,9 +185,9 @@ export default function admin() {
             
            <div>{afficher_select(table)}</div>
 
-            <button  type="button" onClick={() => add_bdd()}>Ajouter une entrée</button>
-            <button  type="button" onClick={() => supp_bdd()}>Supprimer une entrée</button>
-            <button  type="button" onClick={() => maj_bdd()}>Mettre à jour une entrée</button>
+            <button  type="button" onClick={() => requete_bdd("POST")}>Ajouter une entrée</button>
+            <button  type="button" onClick={() => requete_bdd("DELETE")}>Supprimer une entrée</button>
+            <button  type="button" onClick={() => requete_bdd("PUT")}>Mettre à jour une entrée</button>
 
         </div>
         </div>

@@ -2,69 +2,81 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
-
-type Materiel = { 
-  nom: string
-  qt: number
-  info : string
-}
+import type { Emprunt, Emprunt_mat_inventaire,  } from "@/type/type"
+import { userInfo } from "os"
 
 export default function rendu_emp() {
-    const [data_bdd, setData] = useState<Materiel[]>([])
-    const[rendu,setRendu] = useState<Materiel[]>([])
 
-    function recup_histo(){
-        //TODO : récupère les infos de BDD_users et met dans data le matériel emprunté par le users
-         const fakeData = [
-        { nom: "Ballon", qt: 3, info : ""},
-        { nom: "Raquette", qt: 5, info : "Raquette erraflée"},
-        ]
-        setData(fakeData)
+    function get_info(){
+        return{date : "18/25/26", userId : "6156"}
+    }
+
+    const typage = {date : get_info().date, userId : get_info().userId, materiels : []}
+    const [data_bdd, setData] = useState<Emprunt>(typage)
+    const[rendu,setRendu] = useState<Emprunt>(typage)
+
+    async function recup_emprunt(){
+        //Récupère les tickets de BDD_tickets
+        try{
+            const response = await fetch("/api/emprunt")
+            const data = await response.json()
+            setData(data)
+        } 
+        catch(error){console.error("Erreur_recup_emprunt:",error)}
     }
 
     //on l'appelle qu'une seule fois au chargement
     useEffect(() => {
-        recup_histo()
+        recup_emprunt()
     }, [])
 
-   function add(materiel : Materiel,prev : Materiel[], i : number){
-        if(materiel.qt === 0 && i === -1){
+   function add(materiel : Emprunt_mat_inventaire,prev : Emprunt_mat_inventaire[], i : number) : Emprunt_mat_inventaire[]{
+        if(materiel.quantite === 0 && i === -1){
             return prev
         }
         else{
-            let exist = prev.find((elt) => elt.nom === materiel.nom);
-            let new_mat = {nom:"typage", qt : 0, info :""};
+            let exist = prev.find((elt) => elt.inventaire.description=== materiel.inventaire.description);
+            let new_mat : Emprunt_mat_inventaire = {inventaire : materiel.inventaire, quantite : 0, id: materiel.id};
             if(exist === undefined){
-                new_mat = {...materiel, qt : 1}
+                new_mat.quantite = 1
             }
             else{
-                new_mat = {...materiel, qt : exist.qt + i}
+                new_mat.quantite = exist.quantite + i
             }
-            let buff = prev.filter((elt) => elt.nom !== materiel.nom);
+            let buff = prev.filter((elt) => elt.inventaire.id !== materiel.inventaire.id);
             return [new_mat,...buff]
         }
     }
 
-    function rendre(materiel : Materiel){
+    function rendre(materiel: Emprunt_mat_inventaire) {
         // enlève le matériel de data_bdd
-        setData((prev) => { return add(materiel,prev,-1) })
+        setData((prev) =>{ return {...prev, materiels : add(materiel,prev.materiels,-1) } })
         // ajoute dans la liste du panier
-        if(materiel.qt > 0){
-            setRendu((prev) => { return add(materiel,prev,1) } )
+        if(materiel.quantite > 0){
+            setRendu((prev) => { return {...prev , materiels : add(materiel,prev.materiels,1)} } )
         }
     }
 
-    function annuler(materiel : Materiel) {
-        if(materiel.qt > 0){
-            setData((prev) => { return add(materiel,prev,1)})
-            if(materiel.qt === 1){ setRendu((prev) => [...prev.filter((elt) => elt.nom !== materiel.nom)]) }
-            else{ setRendu((prev) => { return add(materiel,prev,-1)}) }
+    function annuler(materiel : Emprunt_mat_inventaire) {
+        if(materiel.quantite > 0){
+            setData((prev) =>{ return {...prev, materiels : add(materiel,prev.materiels,-1) } })
+            if(materiel.quantite === 1){ setRendu((prev) => {
+                return { ...prev, 
+                materiels : prev.materiels.filter((elt) => elt.inventaire.id !== materiel.inventaire.id)}}) } 
+            else{ setRendu((prev) => { return {...prev , materiels : add(materiel,prev.materiels,1)} } )
+ }
         }
     } 
     
-    function rendre_vrm(){
-        // TODO: logique rendu : envoie une requete en attente d'être validée par un admin avec un message
-        console.log(rendu)
+    async function rendre_vrm(){
+        //logique de rendu : envoie une requete en attente d'être validée par un admin avec un message
+        const response = await fetch("/api/rendu",{
+        method: "POST",
+        headers: {"Content-Type": "application/json",},
+        body: JSON.stringify({rendu}),
+        })
+        const data = await response.json()
+        console.log(data)
     }
 
     return (
@@ -84,18 +96,18 @@ export default function rendu_emp() {
         <table border={1} id="materiel-history">
             <thead id="materiel-header">
                 <tr>
-                    <th>Rendre</th><th>Matériel</th><th>Quantité</th><th>Message</th>
+                    <th>Rendre</th><th>Matériel</th><th>Quantité empruntée</th><th>Message</th>
                 </tr>
             </thead>
             <tbody id="materiel-body">
-                {data_bdd.map((elt, i) => (
+                {data_bdd.materiels.map((elt, i) => (
                     <tr key={i}>
                     <td>
                         <button  type="button" onClick={() => rendre(elt)}>+</button>
                     </td>
-                    <td>{elt.nom}</td>
-                    <td>{elt.qt}</td>
-                    <td>{elt.info}</td>
+                    <td>{elt.inventaire.description}</td>
+                    <td>{elt.quantite}</td>
+                    <td>{elt.inventaire.info}</td>
                     </tr>
                 ))}
             </tbody>
@@ -108,18 +120,18 @@ export default function rendu_emp() {
         <table border={1} id="materiel-table">
             <thead id="materiel-header">
                 <tr>
-                    <th>Annuler</th><th>Matériel</th><th>Quantité</th><th>Message</th>
+                    <th>Annuler</th><th>Matériel</th><th>Quantité rendue</th><th>Message</th>
                 </tr>
             </thead>
             <tbody id="materiel-body">
-                {rendu.map((elt, i) => (
+                {rendu.materiels.map((elt, i) => (
                     <tr key={i}>
                     <td>
                         <button  type="button" onClick={() => annuler(elt)}>-</button>
                     </td>
-                    <td>{elt.nom}</td>
-                    <td>{elt.qt}</td>
-                    <td>{elt.info}</td>
+                    <td>{elt.inventaire.description}</td>
+                    <td>{elt.quantite}</td>
+                    <td>{elt.inventaire.info}</td>
                     </tr>
                 ))}
             </tbody>
