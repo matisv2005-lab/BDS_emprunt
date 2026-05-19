@@ -45,6 +45,8 @@ http://localhost:3000/api/auth/callback/rezel
 ```
 
 En production, remplacer `http://localhost:3000` par le domaine public.
+Ou alors on test via un tunnel ssh notre lxc (après avoir fait npm run dev sur notre lxc) :
+ssh -L 3000:localhost:3000 root@[2a09:6847:fa10:1410::333]
 
 ## Installation
 
@@ -73,4 +75,4 @@ SEED_SUPER_ADMIN_PRENOM=
 ## Problèmes rencontrés
 
 - Il a été difficile de travailler avec prismaDB, la configuration menait à beaucoup de crash de la BDD. De plus le développement s'est fait sous Windows ce qui fait que la migration du projet sur la LXC Linux a posé des problèmes supplémentaires.
-- Le frontend, la structure du site, et les routes API n'ont pas été un problème : plus de temps a été passé à résoudre des problèmes sur les requêtes à la BDD et l'authentification
+- Le frontend, la structure du site, et les routes API n'ont pas été un problème : plus de temps a été passé à résoudre des problèmes sur les requêtes à la BDD et l'authentification.
