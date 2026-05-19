@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { signOut } from "next-auth/react"
-import type { Ticket } from "@/type/type"
+import type { Ticket, Emprunt } from "@/type/type"
 
 export default function Admin() {
 
@@ -47,28 +47,32 @@ export default function Admin() {
         }
     }, [])
 
-    function valider(ticket : Ticket){
+    async function valider(ticket : Ticket){
         //Supprimer le ticket de la BDD_tickets
-        requete_bdd("DELETE", ticket,"ticket")
+        await requete_bdd("DELETE", ticket, "ticket")
         //si c'est un emprunt : on ajoute le mat à la BDD_emprunt
-         if(ticket.type === "Emprunt"){
+        if(ticket.type === "Emprunt"){
             const emprunt = {date : ticket.date, userId : ticket.userId, materiels : ticket.materiels}
-            requete_bdd("POST", emprunt, "emprunt")
+            await requete_bdd("POST", emprunt, "emprunt")
             //et on enlève le mat de la BDD_inventaire en mettant -mat.quantite
             for(const mat of ticket.materiels){
                 const inv = {id: mat.inventaire.id, description : mat.inventaire.description, stock : - mat.quantite, info : mat.inventaire.info}
-                requete_bdd("PUT", inv, "inventaire")
+                await requete_bdd("PUT", inv, "inventaire")
             }
         }
         else if(ticket.type === "Rendu"){
             //si c'est un rendu : on supprime le mat de la BDD_emprunt et on ajoute le mat à la BDD_inventaire
-            const emprunt = {date : ticket.date, userId : ticket.userId, materiels : ticket.materiels}
-            requete_bdd("DELETE", emprunt, "emprunt")
+            const res = await fetch("/api/emprunt?userId=" + ticket.userId)
+            const emprunts: Emprunt[] = await res.json()
+            for(const emprunt of emprunts){
+                await requete_bdd("DELETE", {id: emprunt.id}, "emprunt")
+            }
             for(const mat of ticket.materiels){
                 const inv = {id: mat.inventaire.id, description : mat.inventaire.description, stock : mat.quantite, info : mat.inventaire.info}
-                requete_bdd("PUT", inv, "inventaire")
+                await requete_bdd("PUT", inv, "inventaire")
             }
         }
+        setData(prev => prev.filter(t => t.id !== ticket.id))
     }
 
     function get_contenu(table : string){
@@ -172,18 +176,14 @@ export default function Admin() {
             <table border={1} id="table-ticket">
                 <thead id="ticket-header">
                     <tr>
-                        <th>Valider</th><th>Type de demande</th><th>Matériel</th><th>Quantité</th><th>Date</th><th>Utilisateur</th><th>Info</th>
+                        <th>Valider</th><th>Type de demande</th><th>Matériels</th><th>Date</th><th>Utilisateur</th><th>Info</th>
                     </tr>
                 </thead>
                 <tbody id="ticket-body">
                     {data_tickets.map((elt) => (
                         <tr key={elt.id ?? `${elt.type}-${elt.date}`}>
                             <td><button  type="button" onClick={() => valider(elt)}>Check</button></td>
-                            <td>{elt.id}</td>
                             <td>{elt.type}</td>
-                            <td>{elt.date}</td>
-                            <td>{elt.message}</td>
-                            <td>{elt.userId}</td>
                             <td>
                                 <ul>
                                     {elt.materiels.map((m) => (
@@ -193,6 +193,9 @@ export default function Admin() {
                                     ))}
                                 </ul>
                             </td>
+                            <td>{elt.date}</td>
+                            <td>{elt.userId}</td>
+                            <td>{elt.message}</td>
                         </tr>
                     ))}
                 </tbody>

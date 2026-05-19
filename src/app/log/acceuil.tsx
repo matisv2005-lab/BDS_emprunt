@@ -60,14 +60,13 @@ export default function AccueilEmp() {
 
     function emprunter(materiel: Ticket_mat_inventaire) {
             // enlève le matériel de data_bdd
-            setData((prev) =>{
-                for(const elt of prev){
-                    if(materiel.inventaire.description === elt.description){
-                        if(materiel.quantite !== 0){ elt.stock = elt.stock -1 }
-                    }
-                }
-                return prev
-            })
+            setData((prev) =>
+                prev.map((elt) =>
+                    elt.description === materiel.inventaire.description && materiel.quantite !== 0
+                        ? { ...elt, stock: elt.stock - 1 }
+                        : elt
+                )
+            )
             // ajoute dans la liste du panier
             if(materiel.quantite > 0){
                 setPanier((prev) => { return {...prev , materiels : add(materiel,prev.materiels,1)} } )
@@ -76,14 +75,13 @@ export default function AccueilEmp() {
 
     function annuler(materiel : Ticket_mat_inventaire) {
         if(materiel.quantite > 0){
-            setData((prev) =>{
-                for(const elt of prev){
-                    if(materiel.inventaire.description === elt.description){
-                        elt.stock = elt.stock + 1
-                    }
-                }
-                return prev
-             })
+            setData((prev) =>
+                prev.map((elt) =>
+                    elt.description === materiel.inventaire.description
+                        ? { ...elt, stock: elt.stock + 1 }
+                        : elt
+                )
+            )
             if(materiel.quantite === 1){ setPanier((prev) => {
                 return { ...prev, 
                 materiels : prev.materiels.filter((elt) => elt.inventaire.id !== materiel.inventaire.id)}}) } 
