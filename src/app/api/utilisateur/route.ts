@@ -23,6 +23,10 @@ export async function POST(req: Request) {
   if (response) return response
 
   const body = await readPayload(req)
+  if (!body.rezelId || !body.nom || !body.prenom || !body.email) {
+    return NextResponse.json({ error: "Champs obligatoires manquants (rezelId, nom, prenom, email)" }, { status: 400 })
+  }
+
   const user = await prisma.utilisateur.create({
     data: {
       rezelId: body.rezelId,
@@ -40,6 +44,10 @@ export async function PUT(req: Request) {
   if (response) return response
 
   const body = await readPayload(req)
+  if (!body.id) {
+    return NextResponse.json({ error: "Utilisateur id manquant" }, { status: 400 })
+  }
+
   const updated = await prisma.utilisateur.update({
     where: {
       id: body.id,
@@ -59,6 +67,10 @@ export async function DELETE(req: Request) {
   if (response) return response
 
   const body = await readPayload(req)
+  if (!body.id) {
+    return NextResponse.json({ error: "Utilisateur id manquant" }, { status: 400 })
+  }
+
   await prisma.utilisateur.delete({
     where: {
       id: body.id,

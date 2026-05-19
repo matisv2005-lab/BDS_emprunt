@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import { Prisma } from "@prisma/client"
 import { prisma } from "@/lib/prisma"
 import { requireAdmin, requireSession } from "@/lib/api-auth"
 import { readPayload } from "@/lib/request"
@@ -19,6 +20,10 @@ export async function POST(req: Request) {
   if (response) return response
 
   const body = await readPayload(req)
+  if (!body.description) {
+    return NextResponse.json({ error: "Description manquante" }, { status: 400 })
+  }
+
   const inventaire = await prisma.inventaire.create({
     data: {
       description: body.description,
@@ -39,8 +44,14 @@ export async function DELETE(req: Request) {
     return NextResponse.json({ error: "Matériel id manquant" }, { status: 400 })
   }
 
-  await prisma.inventaire.delete({
-    where: {id: body.id,},})
+  try {
+    await prisma.inventaire.delete({ where: { id: body.id } })
+  } catch (e) {
+    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2003") {
+      return NextResponse.json({ error: "Matériel encore utilisé dans des tickets ou emprunts" }, { status: 409 })
+    }
+    throw e
+  }
   return NextResponse.json({ success: true })
 }
 
