@@ -32,10 +32,10 @@ model Utilisateur{
 }
 
 model Ticket {
-  id         String    @id @default(cuid())
-  type       Type_ticket
-  date       DateTime  @default(now())
-  message    String?
+  id        String   @id @default(cuid())
+  type      Type_ticket
+  date      DateTime @default(now())
+  message   String?
 
   userId     String
   user       Utilisateur @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -43,8 +43,8 @@ model Ticket {
 }
 
 model Ticket_mat {
-  id            String @id @default(cuid())
-  quantite      Int
+  id           String @id @default(cuid())
+  quantite     Int
 
   ticketId      String
   inventaireId  String
@@ -52,11 +52,9 @@ model Ticket_mat {
   inventaire     Inventaire  @relation(fields: [inventaireId], references: [id])
 }
 
-
-
 model Emprunt {
-  id           String @id @default(cuid())
-  date         DateTime
+  id        String   @id @default(cuid())
+  date      DateTime @default(now())
 
   userId       String
   user         Utilisateur @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -64,21 +62,21 @@ model Emprunt {
 }
 
 model Emprunt_mat {
-  id            String @id @default(cuid())
-  empruntId     String
-  inventaireId  String
-  quantite      Int
+  id           String @id @default(cuid())
+  quantite     Int
+
+  empruntId    String
+  inventaireId String
 
   emprunt       Emprunt    @relation(fields: [empruntId], references: [id], onDelete: Cascade)
   inventaire    Inventaire @relation(fields: [inventaireId], references: [id])
 }
 
-
 model Inventaire {
-  id                String @id @default(cuid())
-  description       String
-  stock             Int
-  info              String?
+  id          String @id @default(cuid())
+  description String
+  stock       Int
+  info        String?
 
   tickets     Ticket_mat[]
   emprunts    Emprunt_mat[]
