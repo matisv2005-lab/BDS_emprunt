@@ -50,8 +50,8 @@ En production, remplacer `http://localhost:3000` par le domaine public.
 
 ```bash
 npm install
-npm run prisma:migrate
-npm run prisma:seed
+npx prisma db push
+npx prisma db seed
 npm run dev
 ```
 
@@ -68,3 +68,9 @@ SEED_SUPER_ADMIN_PRENOM=
 
 - La validation métier des stocks reste simple et doit encore être durcie pour empêcher les quantités négatives ou les validations concurrentes.
 - Les écrans admin conservent l'interface initiale, volontairement minimale.
+- La LXC sur lesquels la plupart des tests ont été effectué est considéré comme lente par Next-JS : "Slow filesystem detected. The benchmark took 539ms." ce qui rend les tests difficile.
+
+## Problèmes rencontrés
+
+- Il a été difficile de travailler avec prismaDB, la configuration menait à beaucoup de crash de la BDD. De plus le développement s'est fait sous Windows ce qui fait que la migration du projet sur la LXC Linux a posé des problèmes supplémentaires.
+- Le frontend, la structure du site, et les routes API n'ont pas été un problème : plus de temps a été passé à résoudre des problèmes sur les requêtes à la BDD et l'authentification
