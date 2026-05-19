@@ -1,71 +1,55 @@
-{/*
-  
-
-A FAIRE LORSQU ON RECOIT UN TICKET ON SAIT QU ON MAJ LA bdd SELON LE TYPE DU RENDU
-
-
-  import { NextResponse } from "next/server"
+import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 
+//Renvoie l'inventaire
+//Est appelée par /log
+export async function GET(req: Request) {
+  const inventaires = await prisma.inventaire.findMany()
+  return NextResponse.json(inventaires)
+}
 
-// AJOUTER
+//Commande de /admin pour ajouter un matériel à l'inventaire
 export async function POST(req: Request) {
-
   const body = await req.json()
-
-  const materiel = await prisma.inventaire.create({
+  const inventaire = await prisma.inventaire.create({
     data: {
       description: body.description,
-      quantite: body.quantite,
+      stock: body.stock,
       info: body.info,
     },
   })
-  return NextResponse.json(materiel)
+  return NextResponse.json(inventaire)
 }
 
-//DELETE 
+//Pour supprimer un inventaire : commande /admin
 export async function DELETE(req: Request) {
-
   const body = await req.json()
-
   await prisma.inventaire.delete({
-    where: {
-      id: body.id,
-    },
-  })
-
+    where: {id: body.id,},})
   return NextResponse.json({ success: true })
 }
 
-//MAJ
+//Maj lors de validaiton de ticket de type emprunt ou rendu par /admin
+//Modification manuelle de /admin
 export async function PUT(req: Request) {
   const body = await req.json()
-  const updated = await prisma.inventaire.update({
-    where: {
-      id: body.id,
-    },
-    data: {
-      description: body.description,
-      quantite: body.quantite,
-      info: body.info,
-    },
-  })
-  return NextResponse.json(updated)
+  const existing = await prisma.inventaire.findUnique({where: {id: body.id,},})
+  if (!existing) {
+  return NextResponse.json(
+    {error:"Matériel introuvable"},{status: 404})
+  }
+  else{
+    const updated = await prisma.inventaire.update({
+      where: {
+        id: body.id,
+      },
+
+      data: {
+        description: body.description,
+        stock: body.stock + existing.stock,
+        info: body.info,
+      },
+    })
+    return NextResponse.json(updated)
+  }
 }
-
-export async function GET(req: Request) {
-
-  const { searchParams } = new URL(req.url)
-
-  const userId = searchParams.get("userId")
-
-  const tickets = await prisma.ticket.findMany({
-    where: {
-      userId: userId || undefined,
-    },
-  })
-
-  return NextResponse.json(tickets)
-}
-  
-*/}

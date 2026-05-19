@@ -12,12 +12,17 @@ enum Type_ticket {
   Rendu
 }
 
+enum Role {
+  Admin
+  Utilisateur
+}
+
 model Utilisateur{
     id         String @id @default(cuid())
     nom        String
     prenom     String
     email      String @unique
-
+    role       Role
     tickets    Ticket[]
     emprunts   Emprunt[]
 }

@@ -7,18 +7,16 @@ import { userInfo } from "os"
 
 export default function rendu_emp() {
 
-    function get_info(){
-        return{date : "18/25/26", userId : "6156"}
-    }
+    function get_info(){return{date : "18/25/26", userId : "6156"}}
 
     const typage = {date : get_info().date, userId : get_info().userId, materiels : []}
     const [data_bdd, setData] = useState<Emprunt>(typage)
     const[rendu,setRendu] = useState<Emprunt>(typage)
 
     async function recup_emprunt(){
-        //Récupère les tickets de BDD_tickets
+        //Récupère les emprunts de l'utilisateur connecté
         try{
-            const response = await fetch("/api/emprunt")
+        const response = await fetch(`/api/emprunt?userId=${get_info().userId}`)
             const data = await response.json()
             setData(data)
         } 
@@ -31,18 +29,14 @@ export default function rendu_emp() {
     }, [])
 
    function add(materiel : Emprunt_mat_inventaire,prev : Emprunt_mat_inventaire[], i : number) : Emprunt_mat_inventaire[]{
-        if(materiel.quantite === 0 && i === -1){
-            return prev
-        }
+        if(materiel.quantite === 0 && i === -1){ return prev}
         else{
             let exist = prev.find((elt) => elt.inventaire.description=== materiel.inventaire.description);
             let new_mat : Emprunt_mat_inventaire = {inventaire : materiel.inventaire, quantite : 0, id: materiel.id};
             if(exist === undefined){
                 new_mat.quantite = 1
             }
-            else{
-                new_mat.quantite = exist.quantite + i
-            }
+            else{new_mat.quantite = exist.quantite + i}
             let buff = prev.filter((elt) => elt.inventaire.id !== materiel.inventaire.id);
             return [new_mat,...buff]
         }
@@ -59,21 +53,22 @@ export default function rendu_emp() {
 
     function annuler(materiel : Emprunt_mat_inventaire) {
         if(materiel.quantite > 0){
-            setData((prev) =>{ return {...prev, materiels : add(materiel,prev.materiels,-1) } })
+            setData((prev) =>{ return {...prev, materiels : add(materiel,prev.materiels,1) } })
             if(materiel.quantite === 1){ setRendu((prev) => {
                 return { ...prev, 
                 materiels : prev.materiels.filter((elt) => elt.inventaire.id !== materiel.inventaire.id)}}) } 
-            else{ setRendu((prev) => { return {...prev , materiels : add(materiel,prev.materiels,1)} } )
- }
+            else{ setRendu((prev) => { return {...prev , materiels : add(materiel,prev.materiels,-1)} } )
+            }
         }
     } 
     
     async function rendre_vrm(){
-        //logique de rendu : envoie une requete en attente d'être validée par un admin avec un message
-        const response = await fetch("/api/rendu",{
+        //logique de rendu : envoie un ticket de type rendu à la BDD_tickets puis on vide le panier de rendu
+        let ticket = {type : "Rendu", date : get_info().date, userId : get_info().userId, materiels : rendu.materiels}
+        const response = await fetch("/api/ticket",{
         method: "POST",
         headers: {"Content-Type": "application/json",},
-        body: JSON.stringify({rendu}),
+        body: JSON.stringify({ticket}),
         })
         const data = await response.json()
         console.log(data)

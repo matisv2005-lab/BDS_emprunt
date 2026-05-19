@@ -26,7 +26,7 @@ export default function admin() {
     async function recup_tickets(){
         //Récupère les tickets de BDD_tickets
         try{
-            const response = await fetch("/api/tickets")
+            const response = await fetch("/api/ticket")
             const data = await response.json()
             setData(data)
         } 
@@ -41,8 +41,25 @@ export default function admin() {
     function valider(ticket : Ticket){
         //Supprimer le ticket de la BDD_tickets
         requete_bdd("DELETE", ticket,"ticket")
-        //on maj le matériel de l'inventaire en envoyant le ticket
-        requete_bdd("PUT", ticket)
+        //si c'est un emprunt : on ajoute le mat à la BDD_emprunt
+         if(ticket.type === "Emprunt"){
+            let emprunt = {date : ticket.date, userId : ticket.userId, materiels : ticket.materiels}
+            requete_bdd("POST", emprunt, "emprunt")
+            //et on enlève le mat de la BDD_inventaire en mettant -mat.quantite
+            for(const mat of ticket.materiels){
+                let inv = {description : mat.inventaire.description, stock : - mat.quantite, info : mat.inventaire.info}
+                requete_bdd("PUT", inv, "inventaire")
+            }
+        }
+        else if(ticket.type === "Rendu"){
+            //si c'est un rendu : on supprime le mat de la BDD_emprunt et on ajoute le mat à la BDD_inventaire
+            let emprunt = {date : ticket.date, userId : ticket.userId, materiels : ticket.materiels}
+            requete_bdd("DELETE", emprunt, "emprunt")
+            for(const mat of ticket.materiels){
+                let inv = {description : mat.inventaire.description, stock : mat.quantite, info : mat.inventaire.info}
+                requete_bdd("PUT", inv, "inventaire")
+            }
+        }
     }
 
     function get_contenu(table : string){
@@ -54,18 +71,13 @@ export default function admin() {
         return contenu;
     }
 
-    async function requete_bdd(method : string, ticket?:Ticket, table_ticket? : string){
+    async function requete_bdd(method : string, contenu_opt? : any, table_opt? : string){
         let contenu = {}
         let req_table = table
-        //Pour le bouton valider : on supp le ticket
-        if(method === "DELETE" && ticket){
-            contenu = ticket
-            if(table_ticket){ req_table = table_ticket }
-        }
-        //Pour le bouton valider : on maj le matériel de l'inventaire
-        else if(method === "PUT" && ticket){
-            contenu = ticket
-            req_table = "inventaire"
+        //Pour faire des requetes personnalisés en dehors du select
+        if(contenu_opt){
+            contenu = contenu_opt
+            if(table_opt){ req_table = table_opt }
         }
         else{ contenu = get_contenu(table) }
         const response = await fetch("/api/" + req_table,{
@@ -189,6 +201,7 @@ export default function admin() {
             <button  type="button" onClick={() => requete_bdd("DELETE")}>Supprimer une entrée</button>
             <button  type="button" onClick={() => requete_bdd("PUT")}>Mettre à jour une entrée</button>
 
+            <p>NB : pour l'update de la table Inventaire : le stock est maj en ajoutant la nouvelle valeur au stock existant</p>
         </div>
         </div>
     );
