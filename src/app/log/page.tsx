@@ -1,5 +1,3 @@
-import Link from "next/link"
-
 export const metadata = {
   title: "Site emprunt BDS",
   description: "Application de gestion de matériel",

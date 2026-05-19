@@ -1,6 +1,7 @@
 // src/types/ticket.ts
 
 export type TypeTicket = "Emprunt" | "Rendu"
+export type Role = "USER" | "ADMIN" | "SUPER_ADMIN"
 
 export type Inventaire = {
   id?: string | null
@@ -55,9 +56,11 @@ export type Emprunt_mat_inventaire = {
 
 export type Utilisateur = {
   id?: string | null
+  rezelId?: string | null
   nom: string
   prenom: string
   email: string
+  role?: Role
 
   tickets?: Ticket[]
   emprunts?: Emprunt[]

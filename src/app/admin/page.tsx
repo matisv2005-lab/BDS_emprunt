@@ -2,16 +2,19 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
+import { signOut } from "next-auth/react"
 import type { Ticket } from "@/type/type"
 
-export default function admin() {
+export default function Admin() {
 
     const[data_tickets, setData] = useState<Ticket[]>([])
-    const[table, setTable] = useState("Users")
+    const[table, setTable] = useState("utilisateur")
 
     const[nom, setNom] = useState("")
     const[prenom, setPrenom] = useState("")
     const[email, setEmail] = useState("")
+    const[rezelId, setRezelId] = useState("")
+    const[role, setRole] = useState("USER")
 
     const[description, setDescription] = useState("")
     const[info, setInfo] = useState("")
@@ -23,19 +26,25 @@ export default function admin() {
     
     const [inventaireId, setInventaireId] = useState("");
 
-    async function recup_tickets(){
-        //Récupère les tickets de BDD_tickets
-        try{
-            const response = await fetch("/api/ticket")
-            const data = await response.json()
-            setData(data)
-        } 
-        catch(error){console.error("Erreur_recup_tickets:",error)}
-    }
-
     //on l'appelle qu'une seule fois au chargement
     useEffect(() => {
+        let cancelled = false
+
+        async function recup_tickets(){
+            //Récupère les tickets de BDD_tickets
+            try{
+                const response = await fetch("/api/ticket")
+                const data = await response.json()
+                if (!cancelled) setData(data)
+            } 
+            catch(error){console.error("Erreur_recup_tickets:",error)}
+        }
+
         recup_tickets()
+
+        return () => {
+            cancelled = true
+        }
     }, [])
 
     function valider(ticket : Ticket){
@@ -43,20 +52,20 @@ export default function admin() {
         requete_bdd("DELETE", ticket,"ticket")
         //si c'est un emprunt : on ajoute le mat à la BDD_emprunt
          if(ticket.type === "Emprunt"){
-            let emprunt = {date : ticket.date, userId : ticket.userId, materiels : ticket.materiels}
+            const emprunt = {date : ticket.date, userId : ticket.userId, materiels : ticket.materiels}
             requete_bdd("POST", emprunt, "emprunt")
             //et on enlève le mat de la BDD_inventaire en mettant -mat.quantite
             for(const mat of ticket.materiels){
-                let inv = {description : mat.inventaire.description, stock : - mat.quantite, info : mat.inventaire.info}
+                const inv = {id: mat.inventaire.id, description : mat.inventaire.description, stock : - mat.quantite, info : mat.inventaire.info}
                 requete_bdd("PUT", inv, "inventaire")
             }
         }
         else if(ticket.type === "Rendu"){
             //si c'est un rendu : on supprime le mat de la BDD_emprunt et on ajoute le mat à la BDD_inventaire
-            let emprunt = {date : ticket.date, userId : ticket.userId, materiels : ticket.materiels}
+            const emprunt = {date : ticket.date, userId : ticket.userId, materiels : ticket.materiels}
             requete_bdd("DELETE", emprunt, "emprunt")
             for(const mat of ticket.materiels){
-                let inv = {description : mat.inventaire.description, stock : mat.quantite, info : mat.inventaire.info}
+                const inv = {id: mat.inventaire.id, description : mat.inventaire.description, stock : mat.quantite, info : mat.inventaire.info}
                 requete_bdd("PUT", inv, "inventaire")
             }
         }
@@ -64,14 +73,14 @@ export default function admin() {
 
     function get_contenu(table : string){
         let contenu = {}
-        if(table == "utilisateur"){ contenu = {nom: nom, prenom: prenom, email: email} }
+        if(table == "utilisateur"){ contenu = {id: userId, rezelId: rezelId, nom: nom, prenom: prenom, email: email, role: role} }
         else if(table == "ticket"){ contenu = {type: type, description: description, quantite: quant, info: info, date: date, userId: userId} }
-        else if(table == "inventaire"){ contenu = {description: description, quantite: quant, info: info} }
+        else if(table == "inventaire"){ contenu = {description: description, stock: quant, info: info} }
         else if(table == "emprunt"){ contenu = {userId: userId, inventaireId: inventaireId, quantite: quant, date: date} }
         return contenu;
     }
 
-    async function requete_bdd(method : string, contenu_opt? : any, table_opt? : string){
+    async function requete_bdd(method : string, contenu_opt? : unknown, table_opt? : string){
         let contenu = {}
         let req_table = table
         //Pour faire des requetes personnalisés en dehors du select
@@ -83,7 +92,7 @@ export default function admin() {
         const response = await fetch("/api/" + req_table,{
         method: method,
         headers: {"Content-Type": "application/json",},
-        body: JSON.stringify({contenu}),
+        body: JSON.stringify(contenu),
         })
         const data = await response.json()
         console.log(data)
@@ -91,16 +100,23 @@ export default function admin() {
 
     //pour l'architecture de la BDD voir schema.prisma
     function afficher_select(table : string){
-         if(table === "Users"){
+         if(table === "utilisateur"){
             return(
                 <div>
-                <p>Caractéristiques de l'utilisateur:</p>
+                <p>Caractéristiques de l&apos;utilisateur:</p>
+                <input type="text" value={userId} onChange={(e) => setUserId(e.target.value)} placeholder="ID utilisateur existant"/>
+                <input type="text" value={rezelId} onChange={(e) => setRezelId(e.target.value)} placeholder="ID Rezel"/>
                 <input type="text" value={nom} onChange={(e) => setNom(e.target.value)} placeholder="Nom du cotisant"/>
                 <input type="text" value={prenom} onChange={(e) => setPrenom(e.target.value)} placeholder="Prenom du cotisant"/>
                 <input type="text" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email"/>
+                <select value={role} onChange={(e) => setRole(e.target.value)}>
+                    <option value="USER">Cotisant</option>
+                    <option value="ADMIN">Admin</option>
+                    <option value="SUPER_ADMIN">Super Admin</option>
+                </select>
                 </div>
         )} 
-        else if(table === "Tickets"){
+        else if(table === "ticket"){
             return(
                 <div>
                 <p>Caractéristiques du Ticket:</p>
@@ -112,7 +128,7 @@ export default function admin() {
                 <input type="text" value={userId} onChange={(e) => setUserId(e.target.value)} placeholder="ID de l'utilisateur"/>
                 </div>
         )}
-        else if(table === "Inventaire"){
+        else if(table === "inventaire"){
             return(
                 <div>
                 <p>Caractéristiques du matériel:</p>
@@ -121,10 +137,10 @@ export default function admin() {
                 <input type="text" value={info} onChange={(e) => setInfo(e.target.value)} placeholder="Informations supplémentaires..."/>
                 </div>
         )}
-        else if (table === "Emprunt") {
+        else if (table === "emprunt") {
         return (
             <div>
-                <p>Caractéristiques de l'emprunt :</p>
+                <p>Caractéristiques de l&apos;emprunt :</p>
                 <input type="text" value={userId} onChange={(e) => setUserId(e.target.value)} placeholder="ID utilisateur..."/>
                 <input type="text" value={inventaireId} onChange={(e) => setInventaireId(e.target.value)} placeholder="ID inventaire..."/>
                 <input type="number" value={quant} onChange={(e) => setQuant(Number(e.target.value))} placeholder="Quantité"/>
@@ -139,7 +155,7 @@ export default function admin() {
 
         <nav>
             <Link href="/log">Espace Cotisant</Link>
-            <Link href="/">Déconnexion</Link>
+            <button type="button" onClick={() => signOut({ callbackUrl: "/" })}>Déconnexion</button>
         </nav>
         <h1>Page emprunt ADMIN BDS</h1>
         <h2>Fée du Sport</h2>
@@ -160,8 +176,8 @@ export default function admin() {
                     </tr>
                 </thead>
                 <tbody id="ticket-body">
-                    {data_tickets.map((elt, i) => (
-                        <tr key={elt.id}>
+                    {data_tickets.map((elt) => (
+                        <tr key={elt.id ?? `${elt.type}-${elt.date}`}>
                             <td><button  type="button" onClick={() => valider(elt)}>Check</button></td>
                             <td>{elt.id}</td>
                             <td>{elt.type}</td>
@@ -189,10 +205,10 @@ export default function admin() {
                 value={table}
                 onChange={(e) => setTable(e.target.value)}
             >
-                <option value="Users">Utilisateurs Cotisants</option>
-                <option value="Tickets">Tickets</option>
-                <option value="Inventaire">Inventaire Disponible</option>
-                <option value="Emprunt">Emprunts en cours</option>
+                <option value="utilisateur">Utilisateurs Cotisants</option>
+                <option value="ticket">Tickets</option>
+                <option value="inventaire">Inventaire Disponible</option>
+                <option value="emprunt">Emprunts en cours</option>
             </select>
             
            <div>{afficher_select(table)}</div>
@@ -201,7 +217,7 @@ export default function admin() {
             <button  type="button" onClick={() => requete_bdd("DELETE")}>Supprimer une entrée</button>
             <button  type="button" onClick={() => requete_bdd("PUT")}>Mettre à jour une entrée</button>
 
-            <p>NB : pour l'update de la table Inventaire : le stock est maj en ajoutant la nouvelle valeur au stock existant</p>
+            <p>NB : pour l&apos;update de la table Inventaire : le stock est maj en ajoutant la nouvelle valeur au stock existant</p>
         </div>
         </div>
     );
