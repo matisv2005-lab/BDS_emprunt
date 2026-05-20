@@ -22,7 +22,12 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           className="mt-6"
           action={async () => {
             "use server"
-            await signIn("rezel", { redirectTo })
+            // En dev : connexion directe admin sans passer par Rezel
+            if (process.env.NODE_ENV !== "production") {
+              await signIn("demo-admin", { redirectTo })
+            } else {
+              await signIn("rezel", { redirectTo })
+            }
           }}
         >
           <button

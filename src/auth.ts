@@ -35,6 +35,15 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   callbacks: {
     ...authConfig.callbacks,
     async jwt({ token, account, profile }) {
+      // DEMO UNIQUEMENT — connexion directe sans Rezel ni DB
+      if (account?.provider === "demo-admin") {
+        token.dbUserId = "demo-admin"
+        token.role = "SUPER_ADMIN" as Role
+        token.name = "Admin Demo BDS"
+        token.email = "admin@demo.local"
+        return token
+      }
+
       if (account?.provider === "rezel" && profile) {
         const rezelProfile = profile as RezelProfile
 
@@ -70,7 +79,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         return token
       }
 
-      if (token.dbUserId ?? token.sub) {
+      if ((token.dbUserId ?? token.sub) && token.dbUserId !== "demo-admin") {
         const user = await prisma.utilisateur.findUnique({
           where: { id: String(token.dbUserId ?? token.sub) },
           select: {

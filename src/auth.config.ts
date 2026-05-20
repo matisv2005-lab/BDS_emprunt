@@ -1,8 +1,11 @@
 import type { NextAuthConfig } from "next-auth"
 import type { Role } from "@prisma/client"
+import Credentials from "next-auth/providers/credentials"
 
 const DEFAULT_REZEL_ISSUER =
   "https://auth.garezeldap.rezel.net/application/o/bds-emprunt/"
+
+const IS_DEV = process.env.NODE_ENV !== "production"
 
 type RezelProfile = {
   sub: string
@@ -55,6 +58,23 @@ export const authConfig = {
         }
       },
     },
+    // DEMO UNIQUEMENT — provider de connexion directe sans Rezel
+    ...(IS_DEV
+      ? [
+          Credentials({
+            id: "demo-admin",
+            name: "Demo Admin",
+            credentials: {},
+            async authorize() {
+              return {
+                id: "demo-admin",
+                name: "Admin Demo BDS",
+                email: "admin@demo.local",
+              }
+            },
+          }),
+        ]
+      : []),
   ],
   pages: {
     signIn: "/login",
