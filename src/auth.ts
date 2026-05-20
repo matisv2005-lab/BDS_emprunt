@@ -35,12 +35,25 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   callbacks: {
     ...authConfig.callbacks,
     async jwt({ token, account, profile }) {
-      // DEMO UNIQUEMENT — connexion directe sans Rezel ni DB
+      // DEMO UNIQUEMENT — connexion directe sans Rezel, mais on upsert en DB
+      // pour que les FK (ticket.userId, emprunt.userId) soient valides
       if (account?.provider === "demo-admin") {
-        token.dbUserId = "demo-admin"
-        token.role = "SUPER_ADMIN" as Role
-        token.name = "Admin Demo BDS"
-        token.email = "admin@demo.local"
+        const demoUser = await prisma.utilisateur.upsert({
+          where: { rezelId: "demo-admin" },
+          update: {},
+          create: {
+            rezelId: "demo-admin",
+            email: "admin@demo.local",
+            nom: "Demo",
+            prenom: "Admin",
+            role: "SUPER_ADMIN",
+          },
+        })
+        token.dbUserId = demoUser.id
+        token.rezelId = demoUser.rezelId
+        token.role = demoUser.role
+        token.name = `${demoUser.prenom} ${demoUser.nom}`.trim()
+        token.email = demoUser.email
         return token
       }
 
@@ -79,7 +92,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         return token
       }
 
-      if ((token.dbUserId ?? token.sub) && token.dbUserId !== "demo-admin") {
+      if (token.dbUserId ?? token.sub) {
         const user = await prisma.utilisateur.findUnique({
           where: { id: String(token.dbUserId ?? token.sub) },
           select: {

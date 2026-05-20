@@ -47,10 +47,14 @@ export async function DELETE(req: Request) {
   try {
     await prisma.inventaire.delete({ where: { id: body.id } })
   } catch (e) {
-    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2003") {
-      return NextResponse.json({ error: "Matériel encore utilisé dans des tickets ou emprunts" }, { status: 409 })
+    // P2003 = FK known error, 23001 = RESTRICT FK (PrismaClientUnknownRequestError)
+    const isFKViolation =
+      (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2003") ||
+      (e instanceof Prisma.PrismaClientUnknownRequestError && String(e.message).includes("23001"))
+    if (isFKViolation) {
+      return NextResponse.json({ error: "Matériel encore utilisé dans des emprunts en cours" }, { status: 409 })
     }
-    throw e
+    return NextResponse.json({ error: "Erreur lors de la suppression" }, { status: 500 })
   }
   return NextResponse.json({ success: true })
 }

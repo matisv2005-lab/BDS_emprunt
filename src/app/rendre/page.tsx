@@ -49,11 +49,17 @@ export default function RenduEmp() {
             }
             else{new_mat.quantite = exist.quantite + i}
             const buff = prev.filter((elt) => elt.inventaire.id !== materiel.inventaire.id);
+            // si la quantite atteint 0 on retire la ligne plutot que de l'afficher a 0
+            if(new_mat.quantite <= 0) return buff
             return [new_mat,...buff]
         }
     }
 
     function rendre(materiel: Emprunt_mat_inventaire) {
+        // verifie que la quantite disponible est > 0 avant de rendre
+        const current = data_bdd.materiels.find(elt => elt.inventaire.id === materiel.inventaire.id)
+        if(!current || current.quantite <= 0) return
+
         // enlève le matériel de data_bdd
         setData((prev) =>{ return {...prev, materiels : add(materiel,prev.materiels,-1) } })
         // ajoute dans la liste du panier

@@ -59,6 +59,10 @@ export default function AccueilEmp() {
         }
 
     function emprunter(materiel: Ticket_mat_inventaire) {
+            // verifie que le stock est disponible avant d'emprunter
+            const current = data_bdd.find(elt => elt.id === materiel.inventaire.id)
+            if (!current || current.stock <= 0) return
+
             // enlève le matériel de data_bdd
             setData((prev) =>
                 prev.map((elt) =>
