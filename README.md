@@ -50,12 +50,15 @@ ssh -L 3000:localhost:3000 root@[2a09:6847:fa10:1410::333]
 
 ## Installation
 
+Pour initialiser le serveur
 ```bash
 npm install
 npx prisma db push
 npx prisma db seed
 npm run dev
 ```
+
+Pour installer la BDD, il faut installer postgresql et faire tourner la BDD sur le port 5432
 
 Pour créer le premier super-admin, renseigner aussi :
 
@@ -66,11 +69,20 @@ SEED_SUPER_ADMIN_NOM=
 SEED_SUPER_ADMIN_PRENOM=
 ```
 
+Sinon directement dans Postgresql faire
+```bash
+  CREATE USER bds WITH PASSWORD 'bds';
+  CREATE DATABASE bds_emprunt OWNER bds;
+  \q
+```
+
+
 ## Limites
 
 - La validation métier des stocks reste simple et doit encore être durcie pour empêcher les quantités négatives ou les validations concurrentes.
 - Les écrans admin conservent l'interface initiale, volontairement minimale.
 - La LXC sur lesquels la plupart des tests ont été effectué est considéré comme lente par Next-JS : "Slow filesystem detected. The benchmark took 539ms." ce qui rend les tests difficile.
+- Remarque : sur cette version on n'implémente pas l'authentification Rezel mais les routes API sont focntionnels si l'on teste avec un seul SUPER-ADMIN qui fait soi meme des emprunts et rendu. Vous pouvez essayer de remplir l'inventaire sur /admin, emprunter un matériel, valider le ticket, constater que le stock diminue, rendre le matériel, valider le ticket, constater que le stock augmente.
 
 ## Problèmes rencontrés
 
