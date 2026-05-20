@@ -96,9 +96,10 @@ export default function Admin() {
             }
         }
         setData(prev => prev.filter(t => t.id !== ticket.id))
+        await refresh_invent()
     }
 
-    async function refreshInventaire(){
+    async function refresh_invent(){
         try{
             const response = await fetch("/api/inventaire")
             const data = await response.json()
@@ -133,7 +134,7 @@ export default function Admin() {
         const data = await response.json()
         if(response.ok){
             // recharge la liste pour avoir le vrai id généré par la bdd
-            await refreshInventaire()
+            await refresh_invent()
             setNewDescription("")
             setNewInfo("")
             setNewStock(0)
