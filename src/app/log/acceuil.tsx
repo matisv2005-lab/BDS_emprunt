@@ -22,8 +22,7 @@ export default function AccueilEmp() {
         headers: {"Content-Type": "application/json",},
         body: JSON.stringify(contenu),
         })
-        const data = await response.json()
-        console.log(data)
+        await response.json()
     }
     
     // update quand sport change
@@ -54,6 +53,8 @@ export default function AccueilEmp() {
                 if(exist === undefined){new_mat.quantite = 1}
                 else{new_mat.quantite = exist.quantite + i}
                 const buff = prev.filter((elt) => elt.inventaire.id !== materiel.inventaire.id);
+                // si la quantite atteint 0 on retire la ligne plutot que de l'afficher a 0
+                if(new_mat.quantite <= 0) return buff
                 return [new_mat,...buff]
             }
         }
@@ -95,10 +96,11 @@ export default function AccueilEmp() {
     } 
     
 
-    function valider_vrm(){
+    async function valider_vrm(){
         // lorsqu'on valide : on envoie le ticket à la BDD_tickets
+        if(panier.materiels.length === 0) return
         const ticket = {type : "Emprunt", materiels : panier.materiels}
-        requete_bdd("POST", ticket, "ticket")
+        await requete_bdd("POST", ticket, "ticket")
         setPanier({type : "Emprunt" , date : new Date().toISOString(), materiels : []})
     }
 

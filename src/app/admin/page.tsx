@@ -78,15 +78,21 @@ export default function Admin() {
             }
         }
         else if(ticket.type === "Rendu"){
-            //si c'est un rendu : on supprime le mat de la BDD_emprunt et on ajoute le mat à la BDD_inventaire
-            const res = await fetch("/api/emprunt?userId=" + ticket.userId)
-            const emprunts: Emprunt[] = await res.json()
-            for(const emprunt of emprunts){
-                await requete_bdd("DELETE", {id: emprunt.id}, "emprunt")
-            }
+            //si c'est un rendu : on remet le stock dans l'inventaire
             for(const mat of ticket.materiels){
                 const inv = {id: mat.inventaire.id, description : mat.inventaire.description, stock : mat.quantite, info : mat.inventaire.info}
                 await requete_bdd("PUT", inv, "inventaire")
+            }
+            // on supprime uniquement les emprunts qui ne contiennent que des matériels rendus
+            // pour ne pas effacer les autres emprunts actifs du même utilisateur
+            const rendusIds = new Set(ticket.materiels.map(m => m.inventaire.id))
+            const res = await fetch("/api/emprunt?userId=" + ticket.userId)
+            const emprunts: Emprunt[] = await res.json()
+            for(const emprunt of emprunts){
+                const tousRendus = emprunt.materiels.every(m => rendusIds.has(m.inventaire.id))
+                if(tousRendus){
+                    await requete_bdd("DELETE", {id: emprunt.id}, "emprunt")
+                }
             }
         }
         setData(prev => prev.filter(t => t.id !== ticket.id))
@@ -160,8 +166,13 @@ export default function Admin() {
         headers: {"Content-Type": "application/json",},
         body: JSON.stringify(contenu),
         })
-        const data = await response.json()
-        console.log(data)
+        try{
+            const data = await response.json()
+            if(!response.ok) console.error("Erreur requete_bdd:", data)
+            else console.log(data)
+        } catch {
+            console.error("Erreur requete_bdd: réponse non-JSON", response.status)
+        }
     }
 
     //pour l'architecture de la BDD voir schema.prisma

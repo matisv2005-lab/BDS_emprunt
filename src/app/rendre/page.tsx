@@ -87,8 +87,7 @@ export default function RenduEmp() {
         headers: {"Content-Type": "application/json",},
         body: JSON.stringify(ticket),
         })
-        const data = await response.json()
-        console.log(data)
+        await response.json()
         setRendu({date: new Date().toISOString(), materiels: []})
     }
 
